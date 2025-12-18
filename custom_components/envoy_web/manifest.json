@@ -1,0 +1,12 @@
+{
+  "domain": "envoy_web",
+  "name": "Envoy Web (Enphase Enlighten)",
+  "codeowners": ["@craigcitro"],
+  "config_flow": true,
+  "documentation": "https://github.com/ccitro/envoy-web",
+  "issue_tracker": "https://github.com/ccitro/envoy-web/issues",
+  "iot_class": "cloud_polling",
+  "requirements": ["aiohttp>=3.9.0"],
+  "version": "0.1.0"
+}
+

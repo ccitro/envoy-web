@@ -1,0 +1,30 @@
+set_profile:
+  name: Set battery profile
+  description: Set battery profile and backup percentage via Enphase Enlighten web API.
+  fields:
+    entry_id:
+      name: Config entry id
+      description: Optional config entry id to target if multiple Envoy Web entries are configured.
+      required: false
+      selector:
+        text:
+    profile:
+      name: Profile
+      description: Battery profile to set.
+      required: true
+      selector:
+        select:
+          options:
+            - self-consumption
+            - backup_only
+    battery_backup_percentage:
+      name: Battery backup percentage
+      description: Backup percentage (0-100).
+      required: true
+      selector:
+        number:
+          min: 0
+          max: 100
+          mode: slider
+          unit_of_measurement: "%"
+

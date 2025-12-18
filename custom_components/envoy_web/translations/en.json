@@ -1,0 +1,32 @@
+{
+  "title": "Envoy Web",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to Enphase Enlighten",
+        "description": "Enter the values captured from the Envoy / Enlighten web UI.",
+        "data": {
+          "battery_id": "Battery ID",
+          "user_id": "User ID",
+          "email": "Email",
+          "password": "Password"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect / validate credentials."
+    },
+    "abort": {
+      "already_configured": "This Envoy Web instance is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "scan_interval_seconds": "Scan interval (seconds)"
+        }
+      }
+    }
+  }
+}

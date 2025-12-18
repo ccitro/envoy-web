@@ -1,0 +1,5 @@
+# Dev tools for linting/formatting
+# Install: pip install -r requirements-dev.txt
+# Or use: uv pip install -r requirements-dev.txt
+
+ruff>=0.4.0
