@@ -10,12 +10,19 @@ import logging
 from dataclasses import dataclass
 from typing import Any
 
-from aiohttp import ClientSession
+from aiohttp import ClientError, ClientSession
 
 # Defined here (not in const.py) so this module can be imported without HA dependencies.
 ALLOWED_PROFILES = {"self-consumption", "backup_only"}
 
 _LOGGER = logging.getLogger(__name__)
+_MAX_REQUEST_RETRIES = 3
+_MAX_TOKEN_RETRIES = 3
+_RETRY_BACKOFF_SECONDS = 0.5
+
+
+def _backoff_delay(attempt: int) -> float:
+    return _RETRY_BACKOFF_SECONDS * (2**attempt)
 
 @dataclass(frozen=True)
 class EnvoyWebConfig:
@@ -31,6 +38,7 @@ class EnvoyWebApiError(Exception):
 
 class EnvoyWebAuthError(EnvoyWebApiError):
     """Raised when authentication fails."""
+
 
 class EnvoyWebTokenManager:
     """Stateful token cache for Enlighten API authentication."""
@@ -61,12 +69,31 @@ class EnvoyWebTokenManager:
         auth = await self.async_fetch_auth_token()
         return xsrf, auth
 
+    async def async_invalidate(self) -> None:
+        """Clear cached tokens."""
+        async with self._lock:
+            self._xsrf_token = None
+            self._auth_token = None
+
+    async def _async_login_with_retry(self) -> tuple[str, str]:
+        for attempt in range(_MAX_TOKEN_RETRIES):
+            try:
+                return await self.async_login_and_get_tokens()
+            except NotImplementedError:
+                raise
+            except EnvoyWebAuthError:
+                raise
+            except (ClientError, asyncio.TimeoutError) as err:
+                if attempt >= _MAX_TOKEN_RETRIES - 1:
+                    raise EnvoyWebApiError("Failed to authenticate") from err
+                await asyncio.sleep(_backoff_delay(attempt))
+
     async def async_get_tokens(self) -> tuple[str, str]:
         """Return cached tokens, fetching and caching if needed."""
         async with self._lock:
             if self._xsrf_token and self._auth_token:
                 return self._xsrf_token, self._auth_token
-            xsrf, auth = await self.async_login_and_get_tokens()
+            xsrf, auth = await self._async_login_with_retry()
             self._xsrf_token = xsrf
             self._auth_token = auth
             return xsrf, auth
@@ -130,11 +157,31 @@ class EnvoyWebApi:
             "batteryBackupPercentage": battery_backup_percentage,
         }
 
+    async def _request_json(self, method: str, *, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+        for attempt in range(_MAX_REQUEST_RETRIES):
+            try:
+                async with self._session.request(
+                    method, self._url(), headers=await self._headers(), json=payload
+                ) as resp:
+                    if resp.status in (401, 403):
+                        await self._tokens.async_invalidate()
+                        if attempt >= _MAX_REQUEST_RETRIES - 1:
+                            raise EnvoyWebAuthError("Authentication failed")
+                        continue
+                    resp.raise_for_status()
+                    data = await resp.json()
+                    if not isinstance(data, dict):
+                        raise EnvoyWebApiError("Unexpected response shape (expected object)")
+                    return data
+            except (ClientError, asyncio.TimeoutError) as err:
+                if attempt >= _MAX_REQUEST_RETRIES - 1:
+                    raise EnvoyWebApiError("Request failed") from err
+                await asyncio.sleep(_backoff_delay(attempt))
+        raise EnvoyWebApiError("Request failed")
+
     async def async_get_profile(self) -> dict[str, Any]:
-        async with self._session.get(self._url(), headers=await self._headers()) as resp:
-            resp.raise_for_status()
-            payload = await resp.json()
-            return self._extract_profile_details(payload)
+        payload = await self._request_json("GET")
+        return self._extract_profile_details(payload)
 
     async def async_set_profile(self, *, profile: str, battery_backup_percentage: int) -> dict[str, Any]:
         if profile not in ALLOWED_PROFILES:
@@ -143,10 +190,4 @@ class EnvoyWebApi:
             raise ValueError("battery_backup_percentage must be an integer between 0 and 100")
 
         payload = {"profile": profile, "batteryBackupPercentage": battery_backup_percentage}
-        async with self._session.put(self._url(), headers=await self._headers(), json=payload) as resp:
-            resp.raise_for_status()
-            data = await resp.json()
-            if not isinstance(data, dict):
-                raise ValueError("Unexpected response shape (expected object)")
-            return data
-
+        return await self._request_json("PUT", payload=payload)

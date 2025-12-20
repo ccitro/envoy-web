@@ -7,7 +7,8 @@ set_profile:
       description: Optional config entry id to target if multiple Envoy Web entries are configured.
       required: false
       selector:
-        text:
+        config_entry:
+          domain: envoy_web
     profile:
       name: Profile
       description: Battery profile to set.
@@ -27,4 +28,3 @@ set_profile:
           max: 100
           mode: slider
           unit_of_measurement: "%"
-

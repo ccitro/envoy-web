@@ -17,6 +17,7 @@ This integration allows you to monitor and control your Enphase battery system d
 - **Change** the battery profile between Self-Consumption and Backup modes
 - **Adjust** the backup reserve percentage (0-100%)
 - **Automate** battery settings based on weather, time-of-use rates, or grid conditions
+- **Handles sessions automatically**, renewing access when needed and prompting you to re-authenticate if credentials change
 
 > **Note**: This integration uses the same Enphase Enlighten web API that powers the official mobile app and web dashboard. It requires your Enlighten account credentials and works with IQ Battery systems.
 
@@ -196,6 +197,7 @@ entities:
 - Verify your Enlighten email and password are correct
 - Check that you can log in to [enlighten.enphaseenergy.com](https://enlighten.enphaseenergy.com)
 - Ensure your account has access to the battery system
+- If prompted, re-authenticate from **Settings → Devices & Services → Envoy Web → Reconfigure**
 
 ### Entities Unavailable
 

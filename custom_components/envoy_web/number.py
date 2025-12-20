@@ -12,7 +12,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN
+from .const import DOMAIN, MANUFACTURER, MODEL
 from .coordinator import EnvoyWebCoordinator
 
 
@@ -29,6 +29,7 @@ class EnvoyWebBackupPercentageNumber(CoordinatorEntity[EnvoyWebCoordinator], Num
     """Writable backup percentage entity."""
 
     _attr_name = "Battery Backup Percentage"
+    _attr_has_entity_name = True
     _attr_native_unit_of_measurement = "%"
     _attr_native_min_value = 0
     _attr_native_max_value = 100
@@ -36,14 +37,12 @@ class EnvoyWebBackupPercentageNumber(CoordinatorEntity[EnvoyWebCoordinator], Num
 
     def __init__(self, coordinator: EnvoyWebCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator)
-        self._entry = entry
-        self._attr_unique_id = f"{entry.entry_id}_battery_backup_percentage"
-
-    @property
-    def device_info(self) -> DeviceInfo:
         cfg = self.coordinator.api.cfg
-        return DeviceInfo(
+        self._attr_unique_id = f"{cfg.user_id}_{cfg.battery_id}_battery_backup_percentage"
+        self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, f"{cfg.user_id}_{cfg.battery_id}")},
+            manufacturer=MANUFACTURER,
+            model=MODEL,
             name=f"Envoy Web {cfg.battery_id}",
         )
 
@@ -74,4 +73,3 @@ class EnvoyWebBackupPercentageNumber(CoordinatorEntity[EnvoyWebCoordinator], Num
             battery_backup_percentage=pct,
         )
         await self.coordinator.async_request_refresh()
-

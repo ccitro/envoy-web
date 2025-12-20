@@ -11,13 +11,22 @@
           "email": "Email",
           "password": "Password"
         }
+      },
+      "reauth_confirm": {
+        "title": "Reauthenticate with Enphase Enlighten",
+        "description": "Update your Enphase Enlighten credentials.",
+        "data": {
+          "email": "Email",
+          "password": "Password"
+        }
       }
     },
     "error": {
       "cannot_connect": "Failed to connect / validate credentials."
     },
     "abort": {
-      "already_configured": "This Envoy Web instance is already configured."
+      "already_configured": "This Envoy Web instance is already configured.",
+      "reauth_successful": "Reauthentication successful."
     }
   },
   "options": {

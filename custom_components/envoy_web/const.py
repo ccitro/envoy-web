@@ -7,6 +7,9 @@ from .api import ALLOWED_PROFILES as ALLOWED_PROFILES  # noqa: F401
 
 DOMAIN = "envoy_web"
 
+MANUFACTURER = "Enphase Energy"
+MODEL = "IQ Battery"
+
 CONF_BATTERY_ID = "battery_id"
 CONF_USER_ID = "user_id"
 CONF_EMAIL = "email"
@@ -20,4 +23,3 @@ SERVICE_SET_PROFILE = "set_profile"
 ATTR_ENTRY_ID = "entry_id"
 ATTR_PROFILE = "profile"
 ATTR_BATTERY_BACKUP_PERCENTAGE = "battery_backup_percentage"
-

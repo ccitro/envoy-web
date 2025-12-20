@@ -12,7 +12,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import ALLOWED_PROFILES, DOMAIN
+from .const import ALLOWED_PROFILES, DOMAIN, MANUFACTURER, MODEL
 from .coordinator import EnvoyWebCoordinator
 
 
@@ -29,18 +29,17 @@ class EnvoyWebProfileSelect(CoordinatorEntity[EnvoyWebCoordinator], SelectEntity
     """Writable battery profile entity."""
 
     _attr_name = "Battery Profile"
+    _attr_has_entity_name = True
     _attr_options = sorted(ALLOWED_PROFILES)
 
     def __init__(self, coordinator: EnvoyWebCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator)
-        self._entry = entry
-        self._attr_unique_id = f"{entry.entry_id}_battery_profile"
-
-    @property
-    def device_info(self) -> DeviceInfo:
         cfg = self.coordinator.api.cfg
-        return DeviceInfo(
+        self._attr_unique_id = f"{cfg.user_id}_{cfg.battery_id}_battery_profile"
+        self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, f"{cfg.user_id}_{cfg.battery_id}")},
+            manufacturer=MANUFACTURER,
+            model=MODEL,
             name=f"Envoy Web {cfg.battery_id}",
         )
 
@@ -66,4 +65,3 @@ class EnvoyWebProfileSelect(CoordinatorEntity[EnvoyWebCoordinator], SelectEntity
             battery_backup_percentage=int(current_backup),
         )
         await self.coordinator.async_request_refresh()
-

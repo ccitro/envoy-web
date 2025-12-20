@@ -5,10 +5,11 @@ from __future__ import annotations
 from datetime import timedelta
 import logging
 
+from homeassistant.config_entries import ConfigEntryAuthFailed
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .api import EnvoyWebApi
+from .api import EnvoyWebApi, EnvoyWebAuthError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -28,6 +29,7 @@ class EnvoyWebCoordinator(DataUpdateCoordinator[dict]):
     async def _async_update_data(self) -> dict:
         try:
             return await self.api.async_get_profile()
+        except EnvoyWebAuthError as err:
+            raise ConfigEntryAuthFailed("Authentication failed") from err
         except Exception as err:  # noqa: BLE001 - HA wraps failures in UpdateFailed
             raise UpdateFailed(str(err)) from err
-

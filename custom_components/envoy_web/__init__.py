@@ -3,15 +3,16 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
 
-from homeassistant.config_entries import ConfigEntry
+import voluptuous as vol
+
+from homeassistant.config_entries import ConfigEntry, ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .api import EnvoyWebApi, EnvoyWebConfig
+from .api import EnvoyWebApi, EnvoyWebAuthError, EnvoyWebConfig
 from .const import (
     ALLOWED_PROFILES,
     ATTR_BATTERY_BACKUP_PERCENTAGE,
@@ -34,6 +35,16 @@ PLATFORMS: list[Platform] = [Platform.SELECT, Platform.NUMBER]
 
 _DATA_COORDINATORS = "coordinators"
 _DATA_SERVICE_REGISTERED = "service_registered"
+
+_SERVICE_SET_PROFILE_SCHEMA = vol.Schema(
+    {
+        vol.Optional(ATTR_ENTRY_ID): vol.Coerce(str),
+        vol.Required(ATTR_PROFILE): vol.In(ALLOWED_PROFILES),
+        vol.Required(ATTR_BATTERY_BACKUP_PERCENTAGE): vol.All(
+            vol.Coerce(int), vol.Range(min=0, max=100)
+        ),
+    }
+)
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
@@ -59,7 +70,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         entry.options.get(CONF_SCAN_INTERVAL_SECONDS, DEFAULT_SCAN_INTERVAL_SECONDS)
     )
     coordinator = EnvoyWebCoordinator(hass, api, scan_interval_seconds=scan_interval_seconds)
-    await coordinator.async_config_entry_first_refresh()
+    try:
+        await coordinator.async_config_entry_first_refresh()
+    except EnvoyWebAuthError as err:
+        raise ConfigEntryAuthFailed("Authentication failed") from err
+    except Exception as err:  # noqa: BLE001
+        raise ConfigEntryNotReady("Failed to initialize Envoy Web") from err
 
     hass.data[DOMAIN][_DATA_COORDINATORS][entry.entry_id] = coordinator
 
@@ -74,25 +90,31 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         coordinator_for_call: EnvoyWebCoordinator | None = None
         if entry_id:
             coordinator_for_call = coordinators.get(str(entry_id))
+            if coordinator_for_call is None:
+                raise HomeAssistantError(f"Unknown config entry id: {entry_id}")
         else:
             # Default to the first configured entry.
             coordinator_for_call = next(iter(coordinators.values()), None)
         if coordinator_for_call is None:
             raise HomeAssistantError("No Envoy Web config entries are set up")
 
-        profile = str(call.data[ATTR_PROFILE])
-        if profile not in ALLOWED_PROFILES:
-            raise HomeAssistantError(f"Invalid profile: {profile!r}")
-        battery_backup_percentage = int(call.data[ATTR_BATTERY_BACKUP_PERCENTAGE])
-        await coordinator_for_call.api.async_set_profile(
-            profile=profile,
-            battery_backup_percentage=battery_backup_percentage,
-        )
-        await coordinator_for_call.async_request_refresh()
+        try:
+            await coordinator_for_call.api.async_set_profile(
+                profile=call.data[ATTR_PROFILE],
+                battery_backup_percentage=call.data[ATTR_BATTERY_BACKUP_PERCENTAGE],
+            )
+            await coordinator_for_call.async_request_refresh()
+        except EnvoyWebAuthError as err:
+            raise HomeAssistantError("Authentication failed") from err
 
     # Register once globally.
     if not hass.data[DOMAIN][_DATA_SERVICE_REGISTERED]:
-        hass.services.async_register(DOMAIN, SERVICE_SET_PROFILE, _handle_set_profile)
+        hass.services.async_register(
+            DOMAIN,
+            SERVICE_SET_PROFILE,
+            _handle_set_profile,
+            schema=_SERVICE_SET_PROFILE_SCHEMA,
+        )
         hass.data[DOMAIN][_DATA_SERVICE_REGISTERED] = True
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
@@ -109,4 +131,3 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             hass.services.async_remove(DOMAIN, SERVICE_SET_PROFILE)
             hass.data[DOMAIN][_DATA_SERVICE_REGISTERED] = False
     return unload_ok
-
