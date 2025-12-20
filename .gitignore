@@ -13,6 +13,7 @@ venv/
 # Secrets / credentials
 .env
 scripts/.env
+scripts/.envoy_cli_auth.json
 
 # IDE
 .vscode/
