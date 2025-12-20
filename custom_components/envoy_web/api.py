@@ -23,7 +23,7 @@ ALLOWED_PROFILES = {"self-consumption", "backup_only"}
 
 _LOGGER = logging.getLogger(__name__)
 _MAX_REQUEST_RETRIES = 2
-_MAX_TOKEN_RETRIES = 1
+_MAX_TOKEN_RETRIES = 2
 _RETRY_BACKOFF_SECONDS = 0.5
 _BASE_URL = "https://enlighten.enphaseenergy.com"
 _LOGIN_URL = f"{_BASE_URL}/login/login"
@@ -129,7 +129,6 @@ class EnvoyWebTokenManager:
         if not self._login_csrf_token:
             await self.async_fetch_xsrf_token()
 
-        
         password_hash = hashlib.md5(self._password.encode("utf-8")).hexdigest()
         defaults = dict(self._login_form_defaults or {})
         if defaults.get("utf8") == "&#x2713;":
@@ -235,6 +234,10 @@ class EnvoyWebTokenManager:
         """Update the cached XSRF token from API responses."""
         self._xsrf_token = token
 
+    def get_xsrf_cookie(self) -> str | None:
+        """Return the XSRF cookie value if available."""
+        return self._get_xsrf_cookie()
+
     async def _async_login_with_retry(self) -> tuple[str | None, str]:
         for attempt in range(_MAX_TOKEN_RETRIES):
             try:
@@ -333,7 +336,7 @@ class EnvoyWebApi:
         # Mirrors what the web UI uses.
         xsrf_token, auth_token = await self._tokens.async_get_tokens()
         if not xsrf_token:
-            xsrf_token = self._tokens._get_xsrf_cookie()
+            xsrf_token = self._tokens.get_xsrf_cookie()
         headers = {
             "e-auth-token": auth_token,
             "username": str(self._cfg.user_id),
@@ -395,6 +398,7 @@ class EnvoyWebApi:
         payload: dict[str, Any] | None = None,
         url: str | None = None,
     ) -> dict[str, Any]:
+        auth_retry = False
         for attempt in range(_MAX_REQUEST_RETRIES):
             try:
                 async with self._session.request(
@@ -405,7 +409,10 @@ class EnvoyWebApi:
                         self._tokens.set_xsrf_token(xsrf)
                     if resp.status in (401, 403):
                         await self._tokens.async_invalidate()
-                        raise EnvoyWebAuthError("Authentication failed")
+                        if auth_retry or attempt >= _MAX_REQUEST_RETRIES - 1:
+                            raise EnvoyWebAuthError("Authentication failed")
+                        auth_retry = True
+                        continue
                     resp.raise_for_status()
                     data = await resp.json()
                     if not isinstance(data, dict):
@@ -415,6 +422,10 @@ class EnvoyWebApi:
                 if attempt >= _MAX_REQUEST_RETRIES - 1:
                     raise EnvoyWebApiError("Request failed") from err
                 await asyncio.sleep(_backoff_delay(attempt))
+            except EnvoyWebAuthError:
+                raise
+        if auth_retry:
+            raise EnvoyWebAuthError("Authentication failed")
         raise EnvoyWebApiError("Request failed")
 
     async def async_get_profile(self) -> dict[str, Any]:

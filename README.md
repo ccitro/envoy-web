@@ -227,6 +227,7 @@ ENVOY_PASSWORD=yourpassword
 EOF
 
 # Run commands (uv handles dependencies automatically)
+uv run scripts/envoy_cli.py login
 uv run scripts/envoy_cli.py get
 uv run scripts/envoy_cli.py put self-consumption 30
 ```

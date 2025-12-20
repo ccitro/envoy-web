@@ -142,6 +142,7 @@ def _load_auth_cache(session: aiohttp.ClientSession) -> dict[str, str | None] | 
     exp = cache.get("auth_token_exp")
     now = int(time.time())
     if isinstance(exp, int) and exp <= now:
+        _clear_auth_cache()
         return None
 
     cookies = cache.get("cookies")
@@ -176,7 +177,8 @@ def _save_auth_cache(
         "saved_at": int(time.time()),
     }
     cache_path = _cache_path()
-    print(f"Auth cache path: {cache_path}", file=sys.stderr)
+    if os.getenv("ENVOY_DEBUG_AUTH"):
+        logging.getLogger(__name__).debug("Auth cache path: %s", cache_path)
     try:
         cache_path.parent.mkdir(parents=True, exist_ok=True)
         if not cache_path.parent.exists():
@@ -213,16 +215,15 @@ async def _async_main(argv: list[str]) -> int:
             cached = None
             if args.mode != "login" and not args.no_cache:
                 cached = _load_auth_cache(session)
-                if not cached:
-                    print(
-                        "Error: missing CLI auth cache. Run `uv run scripts/envoy_cli.py login` first.",
-                        file=sys.stderr,
+                if cached:
+                    api.load_cached_tokens(
+                        xsrf_token=cached.get("xsrf_token"),
+                        auth_token=cached.get("auth_token"),
                     )
-                    return 2
-                api.load_cached_tokens(
-                    xsrf_token=cached.get("xsrf_token"),
-                    auth_token=cached.get("auth_token"),
-                )
+                elif os.getenv("ENVOY_DEBUG_AUTH"):
+                    logging.getLogger(__name__).debug(
+                        "Auth cache missing or expired; logging in with credentials."
+                    )
             if args.mode == "login":
                 data = await api.async_login()
             elif args.mode == "get":
