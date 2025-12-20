@@ -1,0 +1,45 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  verify-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Verify manifest version matches tag
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import re
+          import sys
+
+          tag = os.environ.get("GITHUB_REF_NAME", "")
+          if not tag.startswith("v"):
+            print(f"Unexpected tag: {tag}", file=sys.stderr)
+            sys.exit(1)
+          version = tag[1:]
+          with open("custom_components/envoy_web/manifest.json", "r", encoding="utf-8") as fh:
+            data = json.load(fh)
+          manifest_version = data.get("version", "")
+          if manifest_version != version:
+            print(
+              f"Manifest version {manifest_version} does not match tag {version}",
+              file=sys.stderr,
+            )
+            sys.exit(1)
+          PY
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
