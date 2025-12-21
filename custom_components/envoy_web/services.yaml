@@ -8,7 +8,7 @@ set_profile:
       required: false
       selector:
         config_entry:
-          domain: envoy_web
+          integration: envoy_web
     profile:
       name: Profile
       description: Battery profile to set.
