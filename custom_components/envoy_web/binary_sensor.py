@@ -49,7 +49,7 @@ class EnvoyWebApiOnlineBinarySensor(
 
     @property
     def available(self) -> bool:
-        return self.coordinator.last_update_time is not None
+        return self.coordinator.last_update_success
 
     @property
     def is_on(self) -> bool | None:
