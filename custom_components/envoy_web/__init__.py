@@ -31,7 +31,13 @@ from .coordinator import EnvoyWebCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS: list[Platform] = [Platform.SELECT, Platform.NUMBER]
+PLATFORMS: list[Platform] = [
+    Platform.SELECT,
+    Platform.NUMBER,
+    Platform.SENSOR,
+    Platform.BINARY_SENSOR,
+    Platform.BUTTON,
+]
 
 _DATA_COORDINATORS = "coordinators"
 _DATA_SERVICE_REGISTERED = "service_registered"

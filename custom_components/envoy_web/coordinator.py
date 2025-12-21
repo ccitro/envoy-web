@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 import logging
 
 from homeassistant.config_entries import ConfigEntryAuthFailed
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.util import dt as dt_util
 
 from .api import EnvoyWebApi, EnvoyWebAuthError
 
@@ -25,10 +26,15 @@ class EnvoyWebCoordinator(DataUpdateCoordinator[dict]):
             update_interval=timedelta(seconds=scan_interval_seconds),
         )
         self.api = api
+        self.last_update_time: datetime | None = None
+        self.last_successful_update: datetime | None = None
 
     async def _async_update_data(self) -> dict:
+        self.last_update_time = dt_util.utcnow()
         try:
-            return await self.api.async_get_profile()
+            data = await self.api.async_get_profile()
+            self.last_successful_update = self.last_update_time
+            return data
         except EnvoyWebAuthError as err:
             raise ConfigEntryAuthFailed("Authentication failed") from err
         except Exception as err:  # noqa: BLE001 - HA wraps failures in UpdateFailed
