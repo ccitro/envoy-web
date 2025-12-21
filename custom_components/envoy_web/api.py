@@ -441,4 +441,8 @@ class EnvoyWebApi:
             raise ValueError("backup_only requires battery_backup_percentage to be 100")
 
         payload = {"profile": profile, "batteryBackupPercentage": battery_backup_percentage}
-        return await self._request_json("PUT", payload=payload, url=self._url_put())
+        await self._request_json("PUT", payload=payload, url=self._url_put())
+        return {
+            "profile": profile,
+            "batteryBackupPercentage": battery_backup_percentage,
+        }

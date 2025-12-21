@@ -99,11 +99,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             raise HomeAssistantError("No Envoy Web config entries are set up")
 
         try:
-            await coordinator_for_call.api.async_set_profile(
+            updated = await coordinator_for_call.api.async_set_profile(
                 profile=call.data[ATTR_PROFILE],
                 battery_backup_percentage=call.data[ATTR_BATTERY_BACKUP_PERCENTAGE],
             )
-            await coordinator_for_call.async_request_refresh()
+            coordinator_for_call.async_set_updated_data(updated)
         except EnvoyWebAuthError as err:
             raise HomeAssistantError("Authentication failed") from err
 

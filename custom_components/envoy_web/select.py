@@ -60,8 +60,8 @@ class EnvoyWebProfileSelect(CoordinatorEntity[EnvoyWebCoordinator], SelectEntity
         if not isinstance(current_backup, int):
             raise ValueError("Cannot set profile: current backup percentage is unknown")
 
-        await self.coordinator.api.async_set_profile(
+        updated = await self.coordinator.api.async_set_profile(
             profile=option,
             battery_backup_percentage=int(current_backup),
         )
-        await self.coordinator.async_request_refresh()
+        self.coordinator.async_set_updated_data(updated)

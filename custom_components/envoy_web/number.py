@@ -68,8 +68,8 @@ class EnvoyWebBackupPercentageNumber(CoordinatorEntity[EnvoyWebCoordinator], Num
         if not isinstance(current_profile, str):
             raise ValueError("Cannot set backup percentage: current profile is unknown")
 
-        await self.coordinator.api.async_set_profile(
+        updated = await self.coordinator.api.async_set_profile(
             profile=current_profile,
             battery_backup_percentage=pct,
         )
-        await self.coordinator.async_request_refresh()
+        self.coordinator.async_set_updated_data(updated)
