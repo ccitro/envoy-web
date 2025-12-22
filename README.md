@@ -81,12 +81,28 @@ After setup, you can configure additional options:
 
 ## Development
 
-This repo ships a Nix flake and `.envrc` for direnv-based setup.
+This repo ships a Nix flake and `.envrc` for direnv-based setup. The flake tracks
+`nixos-unstable` to provide Python 3.13.2+ for Home Assistant 2025.12.x. Runtime
+and test dependencies install into a local `.venv` using `uv` when available.
+
+### Tooling setup
 
 1. `direnv allow .`
 2. `scripts/setup`
 3. `scripts/lint`
 4. `scripts/develop`
+
+### Testing
+
+Run all tests:
+```bash
+./scripts/test
+```
+
+Run a single test:
+```bash
+./scripts/test tests/test_init.py::test_setup_entry_registers_service
+```
 
 ---
 

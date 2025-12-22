@@ -14,7 +14,7 @@ fi
 source "${VENV_DIR}/bin/activate"
 
 if command -v uv >/dev/null 2>&1; then
-    uv pip install --requirement requirements.txt
+    uv pip install --requirement requirements.txt --requirement requirements_test.txt
 else
-    python -m pip install --requirement requirements.txt
+    python -m pip install --requirement requirements.txt --requirement requirements_test.txt
 fi

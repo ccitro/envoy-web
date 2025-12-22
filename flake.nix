@@ -2,7 +2,7 @@
   description = "Envoy Web development environment";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.11";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
@@ -15,13 +15,14 @@
         devShells.default = pkgs.mkShell {
           packages = with pkgs; [
             git
-            python312
-            python312Packages.pip
+            python313
             ruff
             uv
+            stdenv.cc.cc
           ];
           shellHook = ''
             export PIP_DISABLE_PIP_VERSION_CHECK=1
+            export LD_LIBRARY_PATH="${pkgs.stdenv.cc.cc.lib}/lib''${LD_LIBRARY_PATH:+:}$LD_LIBRARY_PATH"
             echo "Envoy Web dev shell ready. Run scripts/setup to create a venv and install deps."
           '';
         };
