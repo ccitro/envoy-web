@@ -2,7 +2,7 @@
   "domain": "envoy_web",
   "name": "Envoy Web (Enphase Enlighten)",
   "codeowners": [
-    "@craigcitro"
+    "@ccitro"
   ],
   "config_flow": true,
   "documentation": "https://github.com/ccitro/envoy-web",
