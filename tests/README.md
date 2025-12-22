@@ -1,6 +1,7 @@
-# Envoy Web Integration Tests
+# Tests
 
-This directory contains integration tests for the Envoy Web Home Assistant custom component.
+This directory contains the test suite for the Envoy Web Home Assistant custom component.
+For general contribution guidelines, see [CONTRIBUTING.md](../CONTRIBUTING.md).
 
 ## Test structure
 
@@ -94,5 +95,4 @@ When adding new tests:
 
 ## Continuous integration
 
-These tests are designed to run in CI/CD pipelines and should be run before
-merging any changes to ensure the integration continues to work correctly.
+These tests run in CI/CD pipelines and should pass before merging any changes.

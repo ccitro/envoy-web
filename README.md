@@ -4,8 +4,9 @@
 [![GitHub Release][release-shield]][releases]
 [![License][license-shield]][license]
 
-[![GitHub Activity][commits-shield]][commits]
-[![GitHub Issues][issues-shield]][issues]
+[![CI][ci-shield]][ci]
+[![HACS Validation][hacs-validate-shield]][hacs-validate]
+[![Hassfest Validation][hassfest-shield]][hassfest]
 
 Home Assistant custom integration for controlling **Enphase IQ Battery** profile and backup reserve percentage via the Enphase Enlighten cloud API.
 
@@ -79,13 +80,13 @@ After setup, you can configure additional options:
 
 ## Entities
 
-This integration creates the following entities:
+This integration creates the following entities. Entity IDs include your battery ID (e.g., `123456`).
 
 ### Battery Profile (select)
 
 | Attribute | Value |
 |-----------|-------|
-| Entity ID | `select.envoy_web_XXX_battery_profile` |
+| Entity ID | `select.envoy_web_BATTERY_ID_battery_profile` |
 | Options | `self-consumption`, `backup_only` |
 
 **Profile descriptions:**
@@ -97,7 +98,7 @@ This integration creates the following entities:
 
 | Attribute | Value |
 |-----------|-------|
-| Entity ID | `number.envoy_web_XXX_battery_backup_percentage` |
+| Entity ID | `number.envoy_web_BATTERY_ID_battery_backup_percentage` |
 | Range | 0-100% |
 | Step | 1% |
 
@@ -120,66 +121,26 @@ data:
 |-------|----------|-------------|
 | `profile` | Yes | `self-consumption` or `backup_only` |
 | `battery_backup_percentage` | Yes | Integer from 0 to 100 |
-| `entry_id` | No | Target a specific config entry (if multiple systems configured) |
+| `entry_id` | No | Target a specific config entry (for multiple battery systems) |
 
-## Automation examples
+You can also control entities directly using `select.select_option` and `number.set_value`.
 
-### Switch to backup mode before a storm
+## Automation example
+
+Maximize battery reserve when severe weather is expected:
 
 ```yaml
 automation:
   - alias: "Storm Prep - Maximize Battery Reserve"
     trigger:
       - platform: state
-        entity_id: sensor.weather_severe_warning
+        entity_id: binary_sensor.severe_weather_warning
         to: "on"
     action:
       - service: envoy_web.set_profile
         data:
           profile: backup_only
           battery_backup_percentage: 100
-```
-
-### Time-of-use rate optimization
-
-```yaml
-automation:
-  - alias: "Peak Hours - Preserve Battery"
-    trigger:
-      - platform: time
-        at: "16:00:00"
-    condition:
-      - condition: time
-        weekday: [mon, tue, wed, thu, fri]
-    action:
-      - service: number.set_value
-        target:
-          entity_id: number.envoy_web_battery_backup_percentage
-        data:
-          value: 80
-
-  - alias: "Off-Peak - Allow Full Discharge"
-    trigger:
-      - platform: time
-        at: "21:00:00"
-    action:
-      - service: number.set_value
-        target:
-          entity_id: number.envoy_web_battery_backup_percentage
-        data:
-          value: 10
-```
-
-### Dashboard card example
-
-```yaml
-type: entities
-title: Battery Control
-entities:
-  - entity: select.envoy_web_battery_profile
-    name: Mode
-  - entity: number.envoy_web_battery_backup_percentage
-    name: Backup Reserve
 ```
 
 ## Troubleshooting
@@ -205,8 +166,8 @@ The integration polls every 10 minutes by default. If you experience issues, try
 
 For contributor setup, linting, and testing details, see:
 
-- `CONTRIBUTING.md`
-- `tests/README.md`
+- [CONTRIBUTING.md](CONTRIBUTING.md)
+- [tests/README.md](tests/README.md)
 
 ### Local CLI testing
 
@@ -236,7 +197,7 @@ chmod +x scripts/envoy_cli.py
 
 ## Contributing
 
-Contributions are welcome. Please review `CONTRIBUTING.md` before opening a pull request.
+Contributions are welcome. Please review [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
 
 ## License
 
@@ -252,7 +213,9 @@ This repo was created with the assistance of GPT 5.2 Codex to both fill my perso
 [releases]: https://github.com/ccitro/envoy-web/releases
 [license-shield]: https://img.shields.io/github/license/ccitro/envoy-web?style=for-the-badge
 [license]: LICENSE
-[commits-shield]: https://img.shields.io/github/commit-activity/y/ccitro/envoy-web?style=for-the-badge
-[commits]: https://github.com/ccitro/envoy-web/commits/main
-[issues-shield]: https://img.shields.io/github/issues/ccitro/envoy-web?style=for-the-badge
-[issues]: https://github.com/ccitro/envoy-web/issues
+[ci-shield]: https://img.shields.io/github/actions/workflow/status/ccitro/envoy-web/ci.yml?style=for-the-badge&label=CI
+[ci]: https://github.com/ccitro/envoy-web/actions/workflows/ci.yml
+[hacs-validate-shield]: https://img.shields.io/github/actions/workflow/status/ccitro/envoy-web/validate-hacs.yml?style=for-the-badge&label=HACS
+[hacs-validate]: https://github.com/ccitro/envoy-web/actions/workflows/validate-hacs.yml
+[hassfest-shield]: https://img.shields.io/github/actions/workflow/status/ccitro/envoy-web/validate-hassfest.yml?style=for-the-badge&label=Hassfest
+[hassfest]: https://github.com/ccitro/envoy-web/actions/workflows/validate-hassfest.yml

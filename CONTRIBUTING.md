@@ -1,4 +1,4 @@
-# Contribution guidelines
+# Contributing
 
 Contributing to this project should be as easy and transparent as possible, whether it's:
 
@@ -41,7 +41,7 @@ Report a bug by [opening a new issue](../../issues/new/choose); it's that easy.
 - What actually happens
 - Notes (including what you tried)
 
-People *love* thorough bug reports. I'm not even kidding.
+Thorough bug reports are greatly appreciated.
 
 ## Use a consistent coding style
 
@@ -104,7 +104,7 @@ For more information about the test suite, see [tests/README.md](tests/README.md
 
 ## Release process
 
-If you're preparing a release, follow `RELEASING.md`.
+If you're preparing a release, see [RELEASING.md](RELEASING.md).
 
 ## License
 
