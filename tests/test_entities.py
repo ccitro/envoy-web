@@ -13,8 +13,8 @@ from custom_components.envoy_web.binary_sensor import EnvoyWebApiOnlineBinarySen
 from custom_components.envoy_web.button import EnvoyWebForceRefreshButton
 from custom_components.envoy_web.coordinator import EnvoyWebCoordinator
 from custom_components.envoy_web.number import EnvoyWebBackupPercentageNumber
-from custom_components.envoy_web.sensor import EnvoyWebLastUpdateSensor
 from custom_components.envoy_web.select import EnvoyWebProfileSelect
+from custom_components.envoy_web.sensor import EnvoyWebLastUpdateSensor
 
 
 @pytest.fixture
@@ -132,9 +132,7 @@ async def test_backup_percentage_number_missing_profile_raises(
         await entity.async_set_native_value(50)
 
 
-def test_profile_select_current_option(
-    coordinator: EnvoyWebCoordinator, mock_config_entry
-) -> None:
+def test_profile_select_current_option(coordinator: EnvoyWebCoordinator, mock_config_entry) -> None:
     """Test select current option reads coordinator data."""
     coordinator.async_set_updated_data(
         {"profile": "self-consumption", "batteryBackupPercentage": 50}
@@ -156,9 +154,7 @@ def test_backup_percentage_native_value(
     assert entity.native_value == 33.0
 
 
-async def test_force_refresh_button(
-    coordinator: EnvoyWebCoordinator, mock_config_entry
-) -> None:
+async def test_force_refresh_button(coordinator: EnvoyWebCoordinator, mock_config_entry) -> None:
     """Test button triggers refresh."""
     coordinator.async_request_refresh = AsyncMock()
     entity = EnvoyWebForceRefreshButton(coordinator, mock_config_entry)
@@ -168,9 +164,7 @@ async def test_force_refresh_button(
     coordinator.async_request_refresh.assert_awaited_once()
 
 
-def test_last_update_sensor(
-    coordinator: EnvoyWebCoordinator, mock_config_entry
-) -> None:
+def test_last_update_sensor(coordinator: EnvoyWebCoordinator, mock_config_entry) -> None:
     """Test last update timestamp sensor."""
     now = dt_util.utcnow()
     coordinator.last_successful_update = now
@@ -179,9 +173,7 @@ def test_last_update_sensor(
     assert entity.native_value == now
 
 
-def test_api_online_binary_sensor(
-    coordinator: EnvoyWebCoordinator, mock_config_entry
-) -> None:
+def test_api_online_binary_sensor(coordinator: EnvoyWebCoordinator, mock_config_entry) -> None:
     """Test API online binary sensor."""
     entity = EnvoyWebApiOnlineBinarySensor(coordinator, mock_config_entry)
     assert entity.is_on is None

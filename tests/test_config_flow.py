@@ -5,8 +5,8 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, patch
 
 from homeassistant import config_entries
-from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.core import HomeAssistant
+from homeassistant.data_entry_flow import FlowResultType
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.envoy_web.api import EnvoyWebApiError, EnvoyWebAuthError
@@ -21,15 +21,11 @@ from custom_components.envoy_web.const import (
 )
 
 
-async def test_user_flow_success(
-    hass: HomeAssistant, mock_config_entry_data: dict
-) -> None:
+async def test_user_flow_success(hass: HomeAssistant, mock_config_entry_data: dict) -> None:
     """Test successful user flow."""
     with patch(
         "custom_components.envoy_web.config_flow.EnvoyWebApi.async_get_profile",
-        new=AsyncMock(
-            return_value={"profile": "self-consumption", "batteryBackupPercentage": 50}
-        ),
+        new=AsyncMock(return_value={"profile": "self-consumption", "batteryBackupPercentage": 50}),
     ):
         result = await hass.config_entries.flow.async_init(
             DOMAIN, context={"source": config_entries.SOURCE_USER}
@@ -60,9 +56,7 @@ async def test_user_flow_auth_error(hass: HomeAssistant, mock_config_entry_data:
         assert result2["errors"] == {"base": "auth"}
 
 
-async def test_user_flow_cannot_connect(
-    hass: HomeAssistant, mock_config_entry_data: dict
-) -> None:
+async def test_user_flow_cannot_connect(hass: HomeAssistant, mock_config_entry_data: dict) -> None:
     """Test connection error during user flow."""
     with patch(
         "custom_components.envoy_web.config_flow.EnvoyWebApi.async_get_profile",
@@ -78,9 +72,7 @@ async def test_user_flow_cannot_connect(
         assert result2["errors"] == {"base": "cannot_connect"}
 
 
-async def test_user_flow_unknown_error(
-    hass: HomeAssistant, mock_config_entry_data: dict
-) -> None:
+async def test_user_flow_unknown_error(hass: HomeAssistant, mock_config_entry_data: dict) -> None:
     """Test unknown error during user flow."""
     with patch(
         "custom_components.envoy_web.config_flow.EnvoyWebApi.async_get_profile",
