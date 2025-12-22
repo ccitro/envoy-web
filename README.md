@@ -19,51 +19,51 @@ This integration allows you to monitor and control your Enphase battery system d
 - **Automate** battery settings based on weather, time-of-use rates, or grid conditions
 - **Handles sessions automatically**, renewing access when needed and prompting you to re-authenticate if credentials change
 
-> **Note**: This integration uses the same Enphase Enlighten web API that powers the official mobile app and web dashboard. It requires your Enlighten account credentials and works with IQ Battery systems.
+## Notices
 
----
+- This integration uses the same Enlighten web API that powers the official app and dashboard. It requires your Enlighten account credentials.
+- The Enlighten API is not officially documented and may change without notice.
+- The integration is **not affiliated with Enphase Energy, Inc.**
 
 ## Installation
 
-### HACS (Recommended)
+### HACS (recommended)
 
 1. Open **HACS** in Home Assistant
-2. Go to **Integrations** → click the **⋮** menu → **Custom repositories**
+2. Go to **Integrations** -> click the **...** menu -> **Custom repositories**
 3. Add `https://github.com/ccitro/envoy-web` with category **Integration**
 4. Click **Install** on the Envoy Web card
 5. **Restart Home Assistant**
 
-### Manual Installation
+### Manual installation
 
 1. Download the [latest release][releases]
 2. Extract and copy `custom_components/envoy_web/` to your `config/custom_components/` directory
 3. Restart Home Assistant
 
----
-
 ## Configuration
 
-### Adding the Integration
+### Add the integration
 
-1. Go to **Settings** → **Devices & Services**
+1. Go to **Settings** -> **Devices & Services**
 2. Click **+ Add Integration**
 3. Search for **Envoy Web**
 4. Enter your configuration:
 
 | Field | Description |
 |-------|-------------|
-| **Battery ID** | Your battery system ID (see [Finding Your IDs](#finding-your-ids)) |
-| **User ID** | Your Enlighten user ID (see [Finding Your IDs](#finding-your-ids)) |
+| **Battery ID** | Your battery system ID (see [Finding your IDs](#finding-your-ids)) |
+| **User ID** | Your Enlighten user ID (see [Finding your IDs](#finding-your-ids)) |
 | **Email** | Your Enphase Enlighten account email |
 | **Password** | Your Enphase Enlighten account password |
 
-### Finding Your IDs
+If your password changes, re-authenticate from **Settings -> Devices & Services -> Envoy Web -> Reconfigure**.
 
-To find your Battery ID and User ID:
+### Finding your IDs
 
 1. Log in to [Enphase Enlighten](https://enlighten.enphaseenergy.com)
 2. Navigate to your system and open the battery settings page
-3. Open your browser's Developer Tools (F12) → **Network** tab
+3. Open your browser's Developer Tools (F12) -> **Network** tab
 4. Look for API calls to `batteryConfig` - the URL contains both IDs:
    ```
    /service/batteryConfig/api/v1/profile/{BATTERY_ID}?userId={USER_ID}
@@ -77,52 +77,23 @@ After setup, you can configure additional options:
 |--------|---------|-------------|
 | **Scan interval** | 600 seconds (10 minutes) | How often to poll the API (10-3600 seconds) |
 
----
-
-## Development
-
-This repo ships a Nix flake and `.envrc` for direnv-based setup. The flake tracks
-`nixos-unstable` to provide Python 3.13.2+ for Home Assistant 2025.12.x. Runtime
-and test dependencies install into a local `.venv` using `uv` when available.
-
-### Tooling setup
-
-1. `direnv allow .`
-2. `scripts/setup`
-3. `scripts/lint`
-4. `scripts/develop`
-
-### Testing
-
-Run all tests:
-```bash
-./scripts/test
-```
-
-Run a single test:
-```bash
-./scripts/test tests/test_init.py::test_setup_entry_registers_service
-```
-
----
-
 ## Entities
 
 This integration creates the following entities:
 
-### Battery Profile (Select)
+### Battery Profile (select)
 
 | Attribute | Value |
 |-----------|-------|
 | Entity ID | `select.envoy_web_XXX_battery_profile` |
 | Options | `self-consumption`, `backup_only` |
 
-**Profile Descriptions:**
+**Profile descriptions:**
 
 - **`self-consumption`**: Battery prioritizes powering your home and storing excess solar. Grid is used as backup.
 - **`backup_only`**: Battery reserves capacity for power outages. Does not discharge during normal operation.
 
-### Battery Backup Percentage (Number)
+### Battery Backup Percentage (number)
 
 | Attribute | Value |
 |-----------|-------|
@@ -131,8 +102,6 @@ This integration creates the following entities:
 | Step | 1% |
 
 This controls the minimum battery charge level to maintain as backup reserve.
-
----
 
 ## Services
 
@@ -153,11 +122,9 @@ data:
 | `battery_backup_percentage` | Yes | Integer from 0 to 100 |
 | `entry_id` | No | Target a specific config entry (if multiple systems configured) |
 
----
+## Automation examples
 
-## Automation Examples
-
-### Switch to Backup Mode Before a Storm
+### Switch to backup mode before a storm
 
 ```yaml
 automation:
@@ -173,7 +140,7 @@ automation:
           battery_backup_percentage: 100
 ```
 
-### Time-of-Use Rate Optimization
+### Time-of-use rate optimization
 
 ```yaml
 automation:
@@ -203,7 +170,7 @@ automation:
           value: 10
 ```
 
-### Dashboard Card Example
+### Dashboard card example
 
 ```yaml
 type: entities
@@ -215,43 +182,44 @@ entities:
     name: Backup Reserve
 ```
 
----
-
 ## Troubleshooting
 
-### Authentication Errors
+### Authentication errors
 
 - Verify your Enlighten email and password are correct
 - Check that you can log in to [enlighten.enphaseenergy.com](https://enlighten.enphaseenergy.com)
 - Ensure your account has access to the battery system
-- If prompted, re-authenticate from **Settings → Devices & Services → Envoy Web → Reconfigure**
+- Re-authenticate from **Settings -> Devices & Services -> Envoy Web -> Reconfigure**
 
-### Entities Unavailable
+### Entities unavailable
 
 - Check Home Assistant logs for error messages
 - Verify your Battery ID and User ID are correct
 - The Enlighten API may be temporarily unavailable
 
-### Rate Limiting
+### Rate limiting
 
 The integration polls every 10 minutes by default. If you experience issues, try increasing the scan interval in the integration options.
 
----
+## Development and testing
 
-## Development
+For contributor setup, linting, and testing details, see:
 
-### Local Testing (CLI)
+- `CONTRIBUTING.md`
+- `tests/README.md`
+
+### Local CLI testing
 
 A CLI tool is included for testing the API without Home Assistant. It uses [uv](https://docs.astral.sh/uv/) for zero-setup dependency management:
 
 ```bash
 # Create credentials file
-cat > scripts/.env << 'EOF'
+cat > scripts/.env << 'ENV_EOF'
 ENVOY_BATTERY_ID=123456
 ENVOY_USER_ID=789012
 ENVOY_EMAIL=you@example.com
 ENVOY_PASSWORD=yourpassword
-EOF
+ENV_EOF
 
 # Run commands (uv handles dependencies automatically)
 uv run scripts/envoy_cli.py login
@@ -266,42 +234,17 @@ chmod +x scripts/envoy_cli.py
 ./scripts/envoy_cli.py get
 ```
 
-### Project Structure
-
-```
-envoy-web/
-├── custom_components/envoy_web/   # Home Assistant integration
-│   ├── api.py                     # Enlighten API client
-│   ├── config_flow.py             # Setup UI
-│   ├── coordinator.py             # Data polling
-│   ├── select.py                  # Profile entity
-│   ├── number.py                  # Backup % entity
-│   └── ...
-├── scripts/envoy_cli.py           # Development CLI
-└── ...
-```
-
----
-
 ## Contributing
 
-Contributions are welcome! Please:
-
-1. Fork the repository
-2. Create a feature branch
-3. Submit a pull request
-
----
+Contributions are welcome. Please review `CONTRIBUTING.md` before opening a pull request.
 
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
----
+## Attribution
 
-## Disclaimer
-
-This integration is not affiliated with, endorsed by, or connected to Enphase Energy, Inc. Use at your own risk. The Enlighten API is not officially documented and may change without notice.
+This repo was created with the assistance of GPT 5.2 Codex to both fill my personal need for the component and to test the capabilities of the LLM.
 
 [hacs-shield]: https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge
 [hacs]: https://hacs.xyz
