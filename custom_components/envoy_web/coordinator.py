@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
 import logging
+from datetime import datetime, timedelta
 
 from homeassistant.config_entries import ConfigEntryAuthFailed
 from homeassistant.core import HomeAssistant
@@ -18,7 +18,9 @@ _LOGGER = logging.getLogger(__name__)
 class EnvoyWebCoordinator(DataUpdateCoordinator[dict]):
     """Fetch battery profile data from the web UI API."""
 
-    def __init__(self, hass: HomeAssistant, api: EnvoyWebApi, *, scan_interval_seconds: int) -> None:
+    def __init__(
+        self, hass: HomeAssistant, api: EnvoyWebApi, *, scan_interval_seconds: int
+    ) -> None:
         super().__init__(
             hass,
             _LOGGER,

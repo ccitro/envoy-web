@@ -6,7 +6,6 @@ Exposes the writable battery backup percentage (0-100).
 from __future__ import annotations
 
 from homeassistant.components.number import NumberEntity
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -14,15 +13,15 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN, MANUFACTURER, MODEL
 from .coordinator import EnvoyWebCoordinator
+from .data import EnvoyWebConfigEntry
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: EnvoyWebConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    coordinator: EnvoyWebCoordinator = hass.data[DOMAIN]["coordinators"][entry.entry_id]
-    async_add_entities([EnvoyWebBackupPercentageNumber(coordinator, entry)])
+    async_add_entities([EnvoyWebBackupPercentageNumber(entry.runtime_data.coordinator, entry)])
 
 
 class EnvoyWebBackupPercentageNumber(CoordinatorEntity[EnvoyWebCoordinator], NumberEntity):
@@ -35,7 +34,7 @@ class EnvoyWebBackupPercentageNumber(CoordinatorEntity[EnvoyWebCoordinator], Num
     _attr_native_max_value = 100
     _attr_native_step = 1
 
-    def __init__(self, coordinator: EnvoyWebCoordinator, entry: ConfigEntry) -> None:
+    def __init__(self, coordinator: EnvoyWebCoordinator, entry: EnvoyWebConfigEntry) -> None:
         super().__init__(coordinator)
         cfg = self.coordinator.api.cfg
         self._attr_unique_id = f"{cfg.user_id}_{cfg.battery_id}_battery_backup_percentage"

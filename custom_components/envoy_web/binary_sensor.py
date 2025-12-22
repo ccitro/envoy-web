@@ -6,7 +6,6 @@ from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
     BinarySensorEntity,
 )
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity import EntityCategory
@@ -15,20 +14,18 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN, MANUFACTURER, MODEL
 from .coordinator import EnvoyWebCoordinator
+from .data import EnvoyWebConfigEntry
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: EnvoyWebConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    coordinator: EnvoyWebCoordinator = hass.data[DOMAIN]["coordinators"][entry.entry_id]
-    async_add_entities([EnvoyWebApiOnlineBinarySensor(coordinator, entry)])
+    async_add_entities([EnvoyWebApiOnlineBinarySensor(entry.runtime_data.coordinator, entry)])
 
 
-class EnvoyWebApiOnlineBinarySensor(
-    CoordinatorEntity[EnvoyWebCoordinator], BinarySensorEntity
-):
+class EnvoyWebApiOnlineBinarySensor(CoordinatorEntity[EnvoyWebCoordinator], BinarySensorEntity):
     """Connectivity status of the Envoy Web API."""
 
     _attr_name = "API Online"
@@ -36,7 +33,7 @@ class EnvoyWebApiOnlineBinarySensor(
     _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
-    def __init__(self, coordinator: EnvoyWebCoordinator, entry: ConfigEntry) -> None:
+    def __init__(self, coordinator: EnvoyWebCoordinator, entry: EnvoyWebConfigEntry) -> None:
         super().__init__(coordinator)
         cfg = self.coordinator.api.cfg
         self._attr_unique_id = f"{cfg.user_id}_{cfg.battery_id}_api_online"

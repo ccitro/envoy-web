@@ -6,7 +6,6 @@ Exposes the writable battery profile ("self-consumption" / "backup_only").
 from __future__ import annotations
 
 from homeassistant.components.select import SelectEntity
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -14,15 +13,15 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import ALLOWED_PROFILES, DOMAIN, MANUFACTURER, MODEL
 from .coordinator import EnvoyWebCoordinator
+from .data import EnvoyWebConfigEntry
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: EnvoyWebConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    coordinator: EnvoyWebCoordinator = hass.data[DOMAIN]["coordinators"][entry.entry_id]
-    async_add_entities([EnvoyWebProfileSelect(coordinator, entry)])
+    async_add_entities([EnvoyWebProfileSelect(entry.runtime_data.coordinator, entry)])
 
 
 class EnvoyWebProfileSelect(CoordinatorEntity[EnvoyWebCoordinator], SelectEntity):
@@ -32,7 +31,7 @@ class EnvoyWebProfileSelect(CoordinatorEntity[EnvoyWebCoordinator], SelectEntity
     _attr_has_entity_name = True
     _attr_options = sorted(ALLOWED_PROFILES)
 
-    def __init__(self, coordinator: EnvoyWebCoordinator, entry: ConfigEntry) -> None:
+    def __init__(self, coordinator: EnvoyWebCoordinator, entry: EnvoyWebConfigEntry) -> None:
         super().__init__(coordinator)
         cfg = self.coordinator.api.cfg
         self._attr_unique_id = f"{cfg.user_id}_{cfg.battery_id}_battery_profile"

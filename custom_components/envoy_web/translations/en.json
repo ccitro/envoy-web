@@ -22,7 +22,9 @@
       }
     },
     "error": {
-      "cannot_connect": "Failed to connect / validate credentials."
+      "auth": "Authentication failed. Check your credentials.",
+      "cannot_connect": "Failed to connect / validate credentials.",
+      "unknown": "Unexpected error occurred."
     },
     "abort": {
       "already_configured": "This Envoy Web instance is already configured.",

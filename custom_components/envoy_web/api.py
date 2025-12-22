@@ -8,14 +8,15 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import html as html_lib
-import urllib.parse
 import logging
 import os
 import re
+import urllib.parse
 import uuid
 from dataclasses import dataclass
 from typing import Any
 
+import async_timeout
 from aiohttp import ClientError, ClientSession
 
 # Defined here (not in const.py) so this module can be imported without HA dependencies.
@@ -47,6 +48,7 @@ _LOGIN_COMMON_HEADERS = {
     "sec-gpc": "1",
     "priority": "u=0, i",
 }
+_REQUEST_TIMEOUT_SECONDS = 15
 
 
 def _backoff_delay(attempt: int) -> float:
@@ -98,7 +100,10 @@ class EnvoyWebTokenManager:
         headers["sec-fetch-site"] = "none"
         if self._debug_auth:
             self._log_auth_debug(f"Login GET headers: {headers}")
-        async with self._session.get(_BASE_URL, headers=headers) as resp:
+        async with (
+            async_timeout.timeout(_REQUEST_TIMEOUT_SECONDS),
+            self._session.get(_BASE_URL, headers=headers) as resp,
+        ):
             resp.raise_for_status()
             if self._debug_auth:
                 headers_dump = dict(resp.headers)
@@ -172,15 +177,18 @@ class EnvoyWebTokenManager:
             encoded_redacted = encoded.replace(encoded_pw, "<redacted_hash>")
             self._log_auth_debug(f"Login POST form encoded: {encoded_redacted}")
             cookies = self._session.cookie_jar.filter_cookies(_BASE_URL)
-            redacted_cookies = {name: "<redacted>" for name in cookies.keys()}
+            redacted_cookies = {name: "<redacted>" for name in cookies}
             self._log_auth_debug(f"Login POST cookies: {redacted_cookies}")
 
-        async with self._session.post(
-            _LOGIN_URL,
-            data=form_items,
-            headers=headers,
-            allow_redirects=False,
-        ) as resp:
+        async with (
+            async_timeout.timeout(_REQUEST_TIMEOUT_SECONDS),
+            self._session.post(
+                _LOGIN_URL,
+                data=form_items,
+                headers=headers,
+                allow_redirects=False,
+            ) as resp,
+        ):
             self._log_auth_debug(
                 f"Login POST status={resp.status} location={resp.headers.get('Location')!r}"
             )
@@ -244,7 +252,7 @@ class EnvoyWebTokenManager:
                 return await self.async_login_and_get_tokens()
             except EnvoyWebAuthError:
                 raise
-            except (ClientError, asyncio.TimeoutError) as err:
+            except (TimeoutError, ClientError) as err:
                 if attempt >= _MAX_TOKEN_RETRIES - 1:
                     raise EnvoyWebApiError("Failed to authenticate") from err
                 await asyncio.sleep(_backoff_delay(attempt))
@@ -283,7 +291,7 @@ class EnvoyWebTokenManager:
                 continue
             name = name_match.group(1)
             type_match = re.search(r'type=["\']([^"\']+)["\']', input_tag, re.IGNORECASE)
-            input_type = (type_match.group(1).lower() if type_match else "")
+            input_type = type_match.group(1).lower() if type_match else ""
             value_match = re.search(r'value=["\']([^"\']*)["\']', input_tag, re.IGNORECASE)
             value = html_lib.unescape(value_match.group(1)) if value_match else ""
             if input_type == "hidden" or name in ("utf8", "authenticity_token"):
@@ -401,9 +409,12 @@ class EnvoyWebApi:
         auth_retry = False
         for attempt in range(_MAX_REQUEST_RETRIES):
             try:
-                async with self._session.request(
-                    method, url or self._url(), headers=await self._headers(), json=payload
-                ) as resp:
+                async with (
+                    async_timeout.timeout(_REQUEST_TIMEOUT_SECONDS),
+                    self._session.request(
+                        method, url or self._url(), headers=await self._headers(), json=payload
+                    ) as resp,
+                ):
                     xsrf = resp.headers.get("x-csrf-token")
                     if xsrf:
                         self._tokens.set_xsrf_token(xsrf)
@@ -418,7 +429,7 @@ class EnvoyWebApi:
                     if not isinstance(data, dict):
                         raise EnvoyWebApiError("Unexpected response shape (expected object)")
                     return data
-            except (ClientError, asyncio.TimeoutError) as err:
+            except (TimeoutError, ClientError) as err:
                 if attempt >= _MAX_REQUEST_RETRIES - 1:
                     raise EnvoyWebApiError("Request failed") from err
                 await asyncio.sleep(_backoff_delay(attempt))
@@ -432,10 +443,14 @@ class EnvoyWebApi:
         payload = await self._request_json("GET")
         return self._extract_profile_details(payload)
 
-    async def async_set_profile(self, *, profile: str, battery_backup_percentage: int) -> dict[str, Any]:
+    async def async_set_profile(
+        self, *, profile: str, battery_backup_percentage: int
+    ) -> dict[str, Any]:
         if profile not in ALLOWED_PROFILES:
             raise ValueError(f"Invalid profile: {profile!r}")
-        if not isinstance(battery_backup_percentage, int) or not (0 <= battery_backup_percentage <= 100):
+        if not isinstance(battery_backup_percentage, int) or not (
+            0 <= battery_backup_percentage <= 100
+        ):
             raise ValueError("battery_backup_percentage must be an integer between 0 and 100")
         if profile == "backup_only" and battery_backup_percentage != 100:
             raise ValueError("backup_only requires battery_backup_percentage to be 100")

@@ -79,6 +79,17 @@ After setup, you can configure additional options:
 
 ---
 
+## Development
+
+This repo ships a Nix flake and `.envrc` for direnv-based setup.
+
+1. `direnv allow .`
+2. `scripts/setup`
+3. `scripts/lint`
+4. `scripts/develop`
+
+---
+
 ## Entities
 
 This integration creates the following entities:

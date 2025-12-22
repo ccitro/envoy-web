@@ -5,12 +5,12 @@ from __future__ import annotations
 import logging
 
 import voluptuous as vol
-
 from homeassistant.config_entries import ConfigEntry, ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.loader import async_get_loaded_integration
 
 from .api import EnvoyWebApi, EnvoyWebAuthError, EnvoyWebConfig
 from .const import (
@@ -23,11 +23,12 @@ from .const import (
     CONF_PASSWORD,
     CONF_SCAN_INTERVAL_SECONDS,
     CONF_USER_ID,
-    DOMAIN,
     DEFAULT_SCAN_INTERVAL_SECONDS,
+    DOMAIN,
     SERVICE_SET_PROFILE,
 )
 from .coordinator import EnvoyWebCoordinator
+from .data import EnvoyWebConfigEntry, EnvoyWebData
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -61,7 +62,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     return True
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_setup_entry(hass: HomeAssistant, entry: EnvoyWebConfigEntry) -> bool:
     """Set up Envoy Web from a config entry."""
     session = async_get_clientsession(hass)
     cfg = EnvoyWebConfig(
@@ -83,6 +84,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     except Exception as err:  # noqa: BLE001
         raise ConfigEntryNotReady("Failed to initialize Envoy Web") from err
 
+    entry.runtime_data = EnvoyWebData(
+        api=api,
+        coordinator=coordinator,
+        integration=async_get_loaded_integration(hass, entry.domain),
+    )
     hass.data[DOMAIN][_DATA_COORDINATORS][entry.entry_id] = coordinator
 
     async def _update_listener(hass: HomeAssistant, updated_entry: ConfigEntry) -> None:
@@ -127,7 +133,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return True
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_unload_entry(hass: HomeAssistant, entry: EnvoyWebConfigEntry) -> bool:
     """Unload a config entry."""
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:

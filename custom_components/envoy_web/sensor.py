@@ -5,7 +5,6 @@ from __future__ import annotations
 from datetime import datetime
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity import EntityCategory
@@ -14,15 +13,15 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN, MANUFACTURER, MODEL
 from .coordinator import EnvoyWebCoordinator
+from .data import EnvoyWebConfigEntry
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: EnvoyWebConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    coordinator: EnvoyWebCoordinator = hass.data[DOMAIN]["coordinators"][entry.entry_id]
-    async_add_entities([EnvoyWebLastUpdateSensor(coordinator, entry)])
+    async_add_entities([EnvoyWebLastUpdateSensor(entry.runtime_data.coordinator, entry)])
 
 
 class EnvoyWebLastUpdateSensor(CoordinatorEntity[EnvoyWebCoordinator], SensorEntity):
@@ -33,7 +32,7 @@ class EnvoyWebLastUpdateSensor(CoordinatorEntity[EnvoyWebCoordinator], SensorEnt
     _attr_device_class = SensorDeviceClass.TIMESTAMP
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
-    def __init__(self, coordinator: EnvoyWebCoordinator, entry: ConfigEntry) -> None:
+    def __init__(self, coordinator: EnvoyWebCoordinator, entry: EnvoyWebConfigEntry) -> None:
         super().__init__(coordinator)
         cfg = self.coordinator.api.cfg
         self._attr_unique_id = f"{cfg.user_id}_{cfg.battery_id}_last_update"

@@ -5,12 +5,13 @@ from __future__ import annotations
 import logging
 
 import voluptuous as vol
-
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import selector
+from homeassistant.helpers.aiohttp_client import async_create_clientsession
 
+from .api import EnvoyWebApi, EnvoyWebApiError, EnvoyWebAuthError, EnvoyWebConfig
 from .const import (
     CONF_BATTERY_ID,
     CONF_EMAIL,
@@ -28,18 +29,14 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_BATTERY_ID): vol.All(
             selector.NumberSelector(
-                selector.NumberSelectorConfig(
-                    min=1, mode=selector.NumberSelectorMode.BOX
-                )
+                selector.NumberSelectorConfig(min=1, mode=selector.NumberSelectorMode.BOX)
             ),
             vol.Coerce(int),
             vol.Range(min=1),
         ),
         vol.Required(CONF_USER_ID): vol.All(
             selector.NumberSelector(
-                selector.NumberSelectorConfig(
-                    min=1, mode=selector.NumberSelectorMode.BOX
-                )
+                selector.NumberSelectorConfig(min=1, mode=selector.NumberSelectorMode.BOX)
             ),
             vol.Coerce(int),
             vol.Range(min=1),
@@ -79,8 +76,15 @@ STEP_REAUTH_DATA_SCHEMA = vol.Schema(
 
 async def _validate_input(hass: HomeAssistant, data: dict) -> None:
     """Validate user input by attempting to authenticate."""
-    # TODO: Call API to verify credentials
-    _ = (hass, data)
+    session = async_create_clientsession(hass)
+    cfg = EnvoyWebConfig(
+        battery_id=int(data[CONF_BATTERY_ID]),
+        user_id=int(data[CONF_USER_ID]),
+        email=str(data[CONF_EMAIL]),
+        password=str(data[CONF_PASSWORD]),
+    )
+    api = EnvoyWebApi(session, cfg)
+    await api.async_get_profile()
 
 
 class EnvoyWebConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -99,9 +103,15 @@ class EnvoyWebConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
             try:
                 await _validate_input(self.hass, user_input)
-            except Exception as err:  # noqa: BLE001
+            except EnvoyWebAuthError as err:
+                _LOGGER.debug("Credential validation failed: %s", err, exc_info=True)
+                errors["base"] = "auth"
+            except EnvoyWebApiError as err:
                 _LOGGER.debug("Credential validation failed: %s", err, exc_info=True)
                 errors["base"] = "cannot_connect"
+            except Exception as err:  # noqa: BLE001
+                _LOGGER.exception("Unexpected error during validation: %s", err)
+                errors["base"] = "unknown"
             else:
                 return self.async_create_entry(
                     title=f"Envoy Web {user_input[CONF_BATTERY_ID]}",
@@ -122,9 +132,21 @@ class EnvoyWebConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
         if user_input is not None and self._reauth_entry is not None:
             data = {**self._reauth_entry.data, **user_input}
-            self.hass.config_entries.async_update_entry(self._reauth_entry, data=data)
-            await self.hass.config_entries.async_reload(self._reauth_entry.entry_id)
-            return self.async_abort(reason="reauth_successful")
+            try:
+                await _validate_input(self.hass, data)
+            except EnvoyWebAuthError as err:
+                _LOGGER.debug("Reauth validation failed: %s", err, exc_info=True)
+                errors["base"] = "auth"
+            except EnvoyWebApiError as err:
+                _LOGGER.debug("Reauth validation failed: %s", err, exc_info=True)
+                errors["base"] = "cannot_connect"
+            except Exception as err:  # noqa: BLE001
+                _LOGGER.exception("Unexpected error during reauth validation: %s", err)
+                errors["base"] = "unknown"
+            else:
+                self.hass.config_entries.async_update_entry(self._reauth_entry, data=data)
+                await self.hass.config_entries.async_reload(self._reauth_entry.entry_id)
+                return self.async_abort(reason="reauth_successful")
 
         return self.async_show_form(
             step_id="reauth_confirm",
@@ -133,7 +155,9 @@ class EnvoyWebConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
     @staticmethod
-    def async_get_options_flow(config_entry: config_entries.ConfigEntry) -> config_entries.OptionsFlow:
+    def async_get_options_flow(
+        config_entry: config_entries.ConfigEntry,
+    ) -> config_entries.OptionsFlow:
         return EnvoyWebOptionsFlowHandler(config_entry)
 
 

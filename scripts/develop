@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+set -e
+
+cd "$(dirname "$0")/.."
+
+if [[ -f "${PWD}/.venv/bin/activate" ]]; then
+    # shellcheck disable=SC1091
+    source "${PWD}/.venv/bin/activate"
+fi
+
+# Create config dir if not present
+if [[ ! -d "${PWD}/config" ]]; then
+    mkdir -p "${PWD}/config"
+    hass --config "${PWD}/config" --script ensure_config
+fi
+
+# Allow HA to import the integration from the repo root.
+export PYTHONPATH="${PYTHONPATH}:${PWD}/custom_components"
+
+# Start Home Assistant
+hass --config "${PWD}/config" --debug

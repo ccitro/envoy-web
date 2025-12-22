@@ -28,10 +28,10 @@ import os
 import sys
 import time
 from pathlib import Path
-from yarl import URL
 
 import aiohttp
 from dotenv import load_dotenv
+from yarl import URL
 
 # Load api.py directly to avoid triggering the HA integration's __init__.py
 _API_PATH = Path(__file__).resolve().parent.parent / "custom_components" / "envoy_web" / "api.py"
@@ -66,8 +66,8 @@ def _req_int(env_key: str) -> int:
     raw = _req_str(env_key)
     try:
         return int(raw, 10)
-    except ValueError:
-        raise SystemExit(f"Error: invalid integer for env var {env_key}: {raw!r}")
+    except ValueError as err:
+        raise SystemExit(f"Error: invalid integer for env var {env_key}: {raw!r}") from err
 
 
 def _load_cfg_from_env() -> EnvoyWebConfig:
@@ -100,7 +100,11 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
     args = parser.parse_args(argv)
     if args.mode == "put" and not (0 <= args.battery_backup_percentage <= 100):
         parser.error("battery_backup_percentage must be between 0 and 100")
-    if args.mode == "put" and args.profile == "backup_only" and args.battery_backup_percentage != 100:
+    if (
+        args.mode == "put"
+        and args.profile == "backup_only"
+        and args.battery_backup_percentage != 100
+    ):
         parser.error("backup_only requires battery_backup_percentage to be 100")
     return args
 
