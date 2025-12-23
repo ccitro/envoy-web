@@ -22,8 +22,10 @@ This integration allows you to monitor and control your Enphase battery system d
 
 ## Notices
 
-- This integration uses the same Enlighten web API that powers the official app and dashboard. It requires your Enlighten account credentials.
-- The Enlighten API is not officially documented and may change without notice.
+- This integration uses the same private Enlighten web API that powers the official app and dashboard, and requires your Enlighten account credentials.
+- The API is not publicly documented; endpoints, payloads, or authentication flows can change without warning and break the integration.
+- Automated access may be detected as non-human activity, which can trigger rate limiting, access restrictions, or account suspension.
+- There is no guarantee of long-term compatibility or support from Enphase/Enlighten.
 - The integration is **not affiliated with Enphase Energy, Inc.**
 
 ## Installation
