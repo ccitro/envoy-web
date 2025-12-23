@@ -78,7 +78,7 @@ After setup, you can configure additional options:
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| **Scan interval** | 600 seconds (10 minutes) | How often to poll the API (10-3600 seconds) |
+| **Scan interval** | 3600 seconds (1 hour) | How often to poll the API (10-3600 seconds) |
 
 ## Entities
 
@@ -162,7 +162,7 @@ automation:
 
 ### Rate limiting
 
-The integration polls every 10 minutes by default. If you experience issues, try increasing the scan interval in the integration options.
+The integration polls every hour by default. If API rate limits or timeouts occur, increase the scan interval in the integration options.
 
 ## Development and testing
 
