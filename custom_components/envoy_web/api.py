@@ -30,29 +30,26 @@ _BASE_URL = "https://enlighten.enphaseenergy.com"
 _LOGIN_URL = f"{_BASE_URL}/login/login"
 _UI_ORIGIN = "https://battery-profile-ui.enphaseenergy.com"
 _LOGIN_UA = (
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
 )
-_LOGIN_COMMON_HEADERS = {
-    "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
-    "accept-language": "en-US,en;q=0.7",
-    "upgrade-insecure-requests": "1",
-    "user-agent": _LOGIN_UA,
-    "sec-ch-ua": '"Brave";v="143", "Chromium";v="143", "Not A(Brand";v="24"',
-    "sec-ch-ua-mobile": "?0",
-    "sec-ch-ua-platform": '"Linux"',
-    "sec-fetch-dest": "document",
-    "sec-fetch-mode": "navigate",
-    "sec-fetch-site": "same-origin",
-    "sec-fetch-user": "?1",
-    "sec-gpc": "1",
-    "priority": "u=0, i",
-}
 _REQUEST_TIMEOUT_SECONDS = 15
 
 
 def _backoff_delay(attempt: int) -> float:
     return _RETRY_BACKOFF_SECONDS * (2**attempt)
+
+
+def _browser_header_template(*, fetch_site: str) -> dict[str, str]:
+    """Return the browser-emulation headers used for login requests."""
+    return {
+        "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+        "accept-language": "en-US,en;q=0.7",
+        "user-agent": _LOGIN_UA,
+        "sec-fetch-dest": "document",
+        "sec-fetch-mode": "navigate",
+        "sec-fetch-site": fetch_site,
+    }
 
 
 @dataclass(frozen=True)
@@ -96,8 +93,7 @@ class EnvoyWebTokenManager:
 
     async def async_fetch_xsrf_token(self) -> str:
         """Fetch a fresh login CSRF token from the Enlighten login page."""
-        headers = dict(_LOGIN_COMMON_HEADERS)
-        headers["sec-fetch-site"] = "none"
+        headers = _browser_header_template(fetch_site="none")
         if self._debug_auth:
             self._log_auth_debug(f"Login GET headers: {headers}")
         async with (
@@ -149,7 +145,7 @@ class EnvoyWebTokenManager:
         ]
         form = dict(form_items)
 
-        headers = dict(_LOGIN_COMMON_HEADERS)
+        headers = _browser_header_template(fetch_site="same-origin")
         headers.update(
             {
                 "origin": _BASE_URL,
