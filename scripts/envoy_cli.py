@@ -3,6 +3,7 @@
 # requires-python = ">=3.11"
 # dependencies = [
 #     "aiohttp>=3.9.0",
+#     "async-timeout>=4.0.0",
 #     "python-dotenv>=1.0.0",
 # ]
 # ///

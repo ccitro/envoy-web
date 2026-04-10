@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from typing import Any
 
 import async_timeout
-from aiohttp import ClientError, ClientSession
+from aiohttp import ClientError, ClientResponseError, ClientSession
 
 # Defined here (not in const.py) so this module can be imported without HA dependencies.
 ALLOWED_PROFILES = {"self-consumption", "backup_only"}
@@ -33,6 +33,8 @@ _LOGIN_UA = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
 )
+_API_ACCEPT = "application/json, text/plain, */*"
+_API_ACCEPT_LANGUAGE = "en-US,en;q=0.7"
 _REQUEST_TIMEOUT_SECONDS = 15
 
 
@@ -345,6 +347,9 @@ class EnvoyWebApi:
             "e-auth-token": auth_token,
             "username": str(self._cfg.user_id),
             "content-type": "application/json",
+            "accept": _API_ACCEPT,
+            "accept-language": _API_ACCEPT_LANGUAGE,
+            "user-agent": _LOGIN_UA,
             "origin": _UI_ORIGIN,
             "referer": f"{_UI_ORIGIN}/",
             "requestid": str(uuid.uuid4()),
@@ -420,11 +425,28 @@ class EnvoyWebApi:
                             raise EnvoyWebAuthError("Authentication failed")
                         auth_retry = True
                         continue
+                    if resp.status >= 400:
+                        response_text = (await resp.text()).strip()
+                        if len(response_text) > 300:
+                            response_text = f"{response_text[:300]}..."
+                        _LOGGER.debug(
+                            "Envoy API %s %s returned HTTP %s (content-type=%r body=%r)",
+                            method,
+                            url or self._url(),
+                            resp.status,
+                            resp.headers.get("Content-Type"),
+                            response_text,
+                        )
                     resp.raise_for_status()
                     data = await resp.json()
                     if not isinstance(data, dict):
                         raise EnvoyWebApiError("Unexpected response shape (expected object)")
                     return data
+            except ClientResponseError as err:
+                if 500 <= err.status < 600 and attempt < _MAX_REQUEST_RETRIES - 1:
+                    await asyncio.sleep(_backoff_delay(attempt))
+                    continue
+                raise EnvoyWebApiError(f"Request failed (HTTP {err.status})") from err
             except (TimeoutError, ClientError) as err:
                 if attempt >= _MAX_REQUEST_RETRIES - 1:
                     raise EnvoyWebApiError("Request failed") from err
