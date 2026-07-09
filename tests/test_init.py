@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, Mock, patch
 
+import pytest
+from homeassistant.config_entries import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.core import HomeAssistant
 
 from custom_components.envoy_web import async_setup, async_setup_entry
@@ -32,3 +34,33 @@ async def test_setup_entry_registers_service(hass: HomeAssistant, mock_config_en
         assert await async_setup_entry(hass, mock_config_entry)
 
     assert hass.services.has_service(DOMAIN, SERVICE_SET_PROFILE)
+
+
+async def test_setup_entry_preserves_auth_failure(hass: HomeAssistant, mock_config_entry) -> None:
+    """Ensure auth failures can trigger Home Assistant reauth handling."""
+    await async_setup(hass, {})
+    mock_config_entry.add_to_hass(hass)
+
+    with (
+        patch(
+            "custom_components.envoy_web.EnvoyWebCoordinator.async_config_entry_first_refresh",
+            new=AsyncMock(side_effect=ConfigEntryAuthFailed("Authentication failed")),
+        ),
+        pytest.raises(ConfigEntryAuthFailed),
+    ):
+        await async_setup_entry(hass, mock_config_entry)
+
+
+async def test_setup_entry_wraps_transient_failure(hass: HomeAssistant, mock_config_entry) -> None:
+    """Ensure non-auth setup failures keep retrying later."""
+    await async_setup(hass, {})
+    mock_config_entry.add_to_hass(hass)
+
+    with (
+        patch(
+            "custom_components.envoy_web.EnvoyWebCoordinator.async_config_entry_first_refresh",
+            new=AsyncMock(side_effect=RuntimeError("boom")),
+        ),
+        pytest.raises(ConfigEntryNotReady),
+    ):
+        await async_setup_entry(hass, mock_config_entry)

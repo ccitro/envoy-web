@@ -82,6 +82,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: EnvoyWebConfigEntry) -> 
     coordinator = EnvoyWebCoordinator(hass, api, scan_interval_seconds=scan_interval_seconds)
     try:
         await coordinator.async_config_entry_first_refresh()
+    except ConfigEntryAuthFailed:
+        raise
     except EnvoyWebAuthError as err:
         raise ConfigEntryAuthFailed("Authentication failed") from err
     except Exception as err:  # noqa: BLE001
