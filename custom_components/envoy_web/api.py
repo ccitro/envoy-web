@@ -16,7 +16,6 @@ import uuid
 from dataclasses import dataclass
 from typing import Any
 
-import async_timeout
 from aiohttp import ClientError, ClientResponseError, ClientSession
 
 # Defined here (not in const.py) so this module can be imported without HA dependencies.
@@ -99,7 +98,7 @@ class EnvoyWebTokenManager:
         if self._debug_auth:
             self._log_auth_debug(f"Login GET headers: {headers}")
         async with (
-            async_timeout.timeout(_REQUEST_TIMEOUT_SECONDS),
+            asyncio.timeout(_REQUEST_TIMEOUT_SECONDS),
             self._session.get(_BASE_URL, headers=headers) as resp,
         ):
             resp.raise_for_status()
@@ -179,7 +178,7 @@ class EnvoyWebTokenManager:
             self._log_auth_debug(f"Login POST cookies: {redacted_cookies}")
 
         async with (
-            async_timeout.timeout(_REQUEST_TIMEOUT_SECONDS),
+            asyncio.timeout(_REQUEST_TIMEOUT_SECONDS),
             self._session.post(
                 _LOGIN_URL,
                 data=form_items,
@@ -411,7 +410,7 @@ class EnvoyWebApi:
         for attempt in range(_MAX_REQUEST_RETRIES):
             try:
                 async with (
-                    async_timeout.timeout(_REQUEST_TIMEOUT_SECONDS),
+                    asyncio.timeout(_REQUEST_TIMEOUT_SECONDS),
                     self._session.request(
                         method, url or self._url(), headers=await self._headers(), json=payload
                     ) as resp,

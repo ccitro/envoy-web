@@ -126,7 +126,7 @@ def _decode_jwt_exp(token: str) -> int | None:
     try:
         data = base64.urlsafe_b64decode(payload + padding)
         parsed = json.loads(data.decode("utf-8"))
-    except (ValueError, json.JSONDecodeError):
+    except ValueError, json.JSONDecodeError:
         return None
     exp = parsed.get("exp")
     return exp if isinstance(exp, int) else None
@@ -138,7 +138,7 @@ def _load_auth_cache(session: aiohttp.ClientSession) -> dict[str, str | None] | 
         return None
     try:
         cache = json.loads(cache_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
+    except OSError, json.JSONDecodeError:
         return None
 
     auth_token = cache.get("auth_token")

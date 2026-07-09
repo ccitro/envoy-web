@@ -49,7 +49,7 @@ pytest tests/
 
 ## Bootstrapping with direnv
 
-If you're using direnv with the flake (Python 3.13.2+), `scripts/setup` installs
+If you're using direnv with the flake (Python 3.14.2+), `scripts/setup` installs
 runtime and test dependencies into `.venv` (via `uv` when available):
 
 ```bash
@@ -58,7 +58,7 @@ direnv allow .
 ./scripts/test
 ```
 
-Note: test deps require Python 3.13, so refresh the direnv shell if you update the flake.
+Note: test deps require Python 3.14, so refresh the direnv shell if you update the flake.
 
 ## Test coverage
 

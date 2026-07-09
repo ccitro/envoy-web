@@ -54,8 +54,8 @@ Use [Ruff formatter](https://docs.astral.sh/ruff/formatter/) to keep formatting 
 ## Development environment (direnv + Nix flakes)
 
 This repo includes a `flake.nix` to provide Python, uv, and ruff, and a `.envrc`
-to load it via direnv. The flake tracks `nixos-unstable` to provide Python 3.13.2+
-for Home Assistant 2025.12.x.
+to load it via direnv. The flake tracks `nixos-unstable` to provide Python 3.14.2+
+for Home Assistant 2026.7.x.
 
 ### Quick start
 

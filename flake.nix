@@ -15,7 +15,7 @@
         devShells.default = pkgs.mkShell {
           packages = with pkgs; [
             git
-            python313
+            python314
             ruff
             uv
             stdenv.cc.cc

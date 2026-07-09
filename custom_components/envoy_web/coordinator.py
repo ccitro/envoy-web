@@ -32,7 +32,7 @@ class EnvoyWebCoordinator(DataUpdateCoordinator[dict]):
         self.last_successful_update: datetime | None = None
 
     async def _async_update_data(self) -> dict:
-        self.last_update_time = dt_util.utcnow()
+        self.last_update_time = dt_util.now(dt_util.UTC)
         try:
             data = await self.api.async_get_profile()
             self.last_successful_update = self.last_update_time
