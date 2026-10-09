@@ -6,7 +6,6 @@ This module is intentionally Home-Assistant-free so it can be used from CLI scri
 from __future__ import annotations
 
 import asyncio
-import hashlib
 import html as html_lib
 import logging
 import os
@@ -131,7 +130,9 @@ class EnvoyWebTokenManager:
         if not self._login_csrf_token:
             await self.async_fetch_xsrf_token()
 
-        password_hash = hashlib.md5(self._password.encode("utf-8")).hexdigest()
+        # Enlighten's login page used to MD5 the password client-side; it now
+        # submits the plaintext password (the md5() helper is no longer called).
+        password = self._password
         defaults = dict(self._login_form_defaults or {})
         if defaults.get("utf8") == "&#x2713;":
             defaults["utf8"] = "\u2713"
@@ -139,7 +140,7 @@ class EnvoyWebTokenManager:
             ("utf8", defaults.get("utf8") or "\u2713"),
             ("authenticity_token", self._login_csrf_token),
             ("user[email]", self._email),
-            ("user[password]", password_hash),
+            ("user[password]", password),
             ("secured_user", defaults.get("secured_user", "true")),
             ("locale", defaults.get("locale", "en")),
             ("commit", defaults.get("commit", "Sign In")),
@@ -156,12 +157,6 @@ class EnvoyWebTokenManager:
             }
         )
         self._log_auth_debug(f"Login POST headers: {headers}")
-        if self._debug_auth:
-            prefix = password_hash[:4]
-            suffix = password_hash[-4:]
-            self._log_auth_debug(
-                f"Login POST password md5 len={len(password_hash)} prefix={prefix} suffix={suffix}"
-            )
 
         redacted_form = dict(form)
         if "user[password]" in redacted_form:
@@ -170,8 +165,8 @@ class EnvoyWebTokenManager:
         if self._debug_auth:
             self._log_auth_debug(f"Login POST form payload: {redacted_form}")
             encoded = urllib.parse.urlencode(form_items)
-            encoded_pw = urllib.parse.quote_plus(password_hash)
-            encoded_redacted = encoded.replace(encoded_pw, "<redacted_hash>")
+            encoded_pw = urllib.parse.quote_plus(password)
+            encoded_redacted = encoded.replace(encoded_pw, "<redacted>")
             self._log_auth_debug(f"Login POST form encoded: {encoded_redacted}")
             cookies = self._session.cookie_jar.filter_cookies(_BASE_URL)
             redacted_cookies = {name: "<redacted>" for name in cookies}
